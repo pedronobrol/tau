@@ -1,9 +1,17 @@
 import * as vscode from 'vscode';
 
+interface VerificationStatus {
+    verified: boolean;
+    hash?: string;
+    reason?: string; // Failure reason
+}
+
 export class CodeLensProvider implements vscode.CodeLensProvider {
     private _onDidChangeCodeLenses: vscode.EventEmitter<void> = new vscode.EventEmitter<void>();
     public readonly onDidChangeCodeLenses: vscode.Event<void> = this._onDidChangeCodeLenses.event;
     private generatingLines: Set<string> = new Set(); // Track which lines are generating (format: "filepath:line")
+    private verifyingLines: Set<string> = new Set(); // Track which lines are verifying (format: "filepath:line")
+    private verificationStatus: Map<string, VerificationStatus> = new Map(); // Store verification results (format: "filepath:line")
 
     public provideCodeLenses(
         document: vscode.TextDocument,
@@ -21,38 +29,83 @@ export class CodeLensProvider implements vscode.CodeLensProvider {
                 const hasSpecs = this.hasSpecsBelow(document, i);
                 const lineKey = `${document.uri.fsPath}:${i}`;
                 const isGenerating = this.generatingLines.has(lineKey);
+                const isVerifying = this.verifyingLines.has(lineKey);
+                const status = this.verificationStatus.get(lineKey);
 
-                // Add verification CodeLens
-                const verifyCommand: vscode.Command = {
-                    title: '▶ Verify',
-                    command: 'tau.verify',
-                    arguments: [document, i]
-                };
-                codeLenses.push(new vscode.CodeLens(range, verifyCommand));
-
-                // Add spec generation/regeneration CodeLens with loading state
+                // If generating specs, only show loading indicator
                 if (isGenerating) {
-                    // Show loading spinner
                     const loadingCommand: vscode.Command = {
-                        title: '⏳ Generating...',
+                        title: '$(sync~spin)  Generating specs...',
                         command: '', // No command while loading
                         arguments: []
                     };
                     codeLenses.push(new vscode.CodeLens(range, loadingCommand));
-                } else if (hasSpecs) {
-                    const regenCommand: vscode.Command = {
-                        title: '🔄 Regenerate Specs',
-                        command: 'tau.generateSpecs',
-                        arguments: [document, i]
+                }
+                // If verifying, only show loading indicator
+                else if (isVerifying) {
+                    const loadingCommand: vscode.Command = {
+                        title: '$(sync~spin)  Verifying code...',
+                        command: '', // No command while loading
+                        arguments: []
                     };
-                    codeLenses.push(new vscode.CodeLens(range, regenCommand));
-                } else {
-                    const genCommand: vscode.Command = {
-                        title: '✨ Generate Specs',
-                        command: 'tau.generateSpecs',
-                        arguments: [document, i]
-                    };
-                    codeLenses.push(new vscode.CodeLens(range, genCommand));
+                    codeLenses.push(new vscode.CodeLens(range, loadingCommand));
+                }
+                // Show status and buttons based on verification result
+                else {
+                    if (status) {
+                        if (status.verified) {
+                            // Passed: only show hash with check icon, no buttons
+                            const statusCommand: vscode.Command = {
+                                title: `$(pass)  #${status.hash?.substring(0, 8) || ''}`,
+                                command: '', // Status is not clickable
+                                arguments: []
+                            };
+                            codeLenses.push(new vscode.CodeLens(range, statusCommand));
+                        } else {
+                            // Failed: show simple x with hash (hover shows reason)
+                            const reason = status.reason || 'Verification failed';
+                            const statusCommand: vscode.Command = {
+                                title: `$(x)  Failed`,
+                                command: '', // Status is not clickable
+                                arguments: [],
+                                tooltip: reason
+                            };
+                            codeLenses.push(new vscode.CodeLens(range, statusCommand));
+
+                            // Only show regenerate specs button when failed
+                            const regenCommand: vscode.Command = {
+                                title: '$(refresh)  Regenerate Specs',
+                                command: 'tau.generateSpecs',
+                                arguments: [document, i]
+                            };
+                            codeLenses.push(new vscode.CodeLens(range, regenCommand));
+                        }
+                    } else {
+                        // No verification yet: show both verify and specs buttons
+                        const verifyCommand: vscode.Command = {
+                            title: '$(play)  Verify',
+                            command: 'tau.verify',
+                            arguments: [document, i]
+                        };
+                        codeLenses.push(new vscode.CodeLens(range, verifyCommand));
+
+                        // Spec generation button
+                        if (hasSpecs) {
+                            const regenCommand: vscode.Command = {
+                                title: '$(refresh)  Specs',
+                                command: 'tau.generateSpecs',
+                                arguments: [document, i]
+                            };
+                            codeLenses.push(new vscode.CodeLens(range, regenCommand));
+                        } else {
+                            const genCommand: vscode.Command = {
+                                title: '$(sparkle)  Specs',
+                                command: 'tau.generateSpecs',
+                                arguments: [document, i]
+                            };
+                            codeLenses.push(new vscode.CodeLens(range, genCommand));
+                        }
+                    }
                 }
             }
         }
@@ -92,6 +145,35 @@ export class CodeLensProvider implements vscode.CodeLensProvider {
         } else {
             this.generatingLines.delete(lineKey);
         }
+        this.refresh();
+    }
+
+    public setVerifying(document: vscode.TextDocument, line: number, isVerifying: boolean): void {
+        const lineKey = `${document.uri.fsPath}:${line}`;
+        if (isVerifying) {
+            this.verifyingLines.add(lineKey);
+        } else {
+            this.verifyingLines.delete(lineKey);
+        }
+        this.refresh();
+    }
+
+    public setVerificationStatus(document: vscode.TextDocument, line: number, verified: boolean, hash?: string, reason?: string): void {
+        const lineKey = `${document.uri.fsPath}:${line}`;
+        this.verificationStatus.set(lineKey, { verified, hash, reason });
+        this.refresh();
+    }
+
+    public clearVerificationStatus(document: vscode.TextDocument): void {
+        // Clear all verification status for this document
+        const docUri = document.uri.fsPath;
+        const keysToDelete: string[] = [];
+        for (const key of this.verificationStatus.keys()) {
+            if (key.startsWith(docUri)) {
+                keysToDelete.push(key);
+            }
+        }
+        keysToDelete.forEach(key => this.verificationStatus.delete(key));
         this.refresh();
     }
 }

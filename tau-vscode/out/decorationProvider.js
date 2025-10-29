@@ -67,11 +67,13 @@ class DecorationProvider {
      */
     showSuccess(editor, line, hash) {
         this.clearLine(editor, line);
+        const lineText = editor.document.lineAt(line);
+        const endPosition = lineText.range.end;
         const decoration = {
-            range: new vscode.Range(line, 0, line, 0),
+            range: new vscode.Range(endPosition, endPosition),
             renderOptions: {
                 after: {
-                    contentText: `✔ #${hash.substring(0, 8)}`
+                    contentText: ` ✔ #${hash.substring(0, 8)}`
                 }
             }
         };
@@ -82,11 +84,13 @@ class DecorationProvider {
      */
     showFailure(editor, line) {
         this.clearLine(editor, line);
+        const lineText = editor.document.lineAt(line);
+        const endPosition = lineText.range.end;
         const decoration = {
-            range: new vscode.Range(line, 0, line, 0),
+            range: new vscode.Range(endPosition, endPosition),
             renderOptions: {
                 after: {
-                    contentText: '✗'
+                    contentText: ' ✗'
                 }
             }
         };
@@ -101,11 +105,13 @@ class DecorationProvider {
         // Start spinner animation
         const interval = setInterval(() => {
             this.currentFrame = (this.currentFrame + 1) % SPINNER_FRAMES.length;
+            const lineText = editor.document.lineAt(line);
+            const endPosition = lineText.range.end;
             const decoration = {
-                range: new vscode.Range(line, 0, line, 0),
+                range: new vscode.Range(endPosition, endPosition),
                 renderOptions: {
                     after: {
-                        contentText: SPINNER_FRAMES[this.currentFrame]
+                        contentText: ` ${SPINNER_FRAMES[this.currentFrame]}`
                     }
                 }
             };
@@ -134,9 +140,30 @@ class DecorationProvider {
         editor.setDecorations(this.failureDecorationType, []);
     }
     /**
+     * Clear all decorations in the editor
+     */
+    clearAll(editor) {
+        // Clear all spinners
+        const keysToDelete = [];
+        for (const key of this.spinnerIntervals.keys()) {
+            if (key.startsWith(editor.document.uri.toString())) {
+                const interval = this.spinnerIntervals.get(key);
+                if (interval) {
+                    clearInterval(interval);
+                }
+                keysToDelete.push(key);
+            }
+        }
+        keysToDelete.forEach(key => this.spinnerIntervals.delete(key));
+        // Clear all decoration types
+        editor.setDecorations(this.successDecorationType, []);
+        editor.setDecorations(this.failureDecorationType, []);
+        editor.setDecorations(this.spinnerDecorationType, []);
+    }
+    /**
      * Update all decorations for an editor
      */
-    updateDecorations(editor) {
+    updateDecorations(_editor) {
         // This would be called when switching files
         // In a full implementation, you'd store decoration state and reapply it
     }

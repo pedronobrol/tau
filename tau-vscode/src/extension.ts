@@ -22,6 +22,15 @@ export function activate(context: vscode.ExtensionContext) {
     decorationProvider = new DecorationProvider();
     diagnosticsManager = new DiagnosticsManager();
 
+    // Initialize completion provider
+    completionProvider = new CompletionProvider(tauClient);
+    context.subscriptions.push(
+        vscode.languages.registerInlineCompletionItemProvider(
+            { language: 'python' },
+            completionProvider
+        )
+    );
+
     // Check if server is running
     tauClient.healthCheck().then(isRunning => {
         if (!isRunning) {
@@ -40,15 +49,6 @@ export function activate(context: vscode.ExtensionContext) {
             vscode.window.showInformationMessage('TAU server is running');
         }
     });
-
-    // Register completion provider for @safe
-    completionProvider = new CompletionProvider(tauClient);
-    context.subscriptions.push(
-        vscode.languages.registerInlineCompletionItemProvider(
-            { language: 'python' },
-            completionProvider
-        )
-    );
 
     // Register CodeLens provider for verification triggers
     const codeLensProvider = new CodeLensProvider();
@@ -84,7 +84,7 @@ export function activate(context: vscode.ExtensionContext) {
 
     context.subscriptions.push(
         vscode.commands.registerCommand('tau.verify', async (document: vscode.TextDocument, line: number) => {
-            await verifyFunction(document, line);
+            await verifyFunction(document, line, codeLensProvider);
         })
     );
 
@@ -94,7 +94,7 @@ export function activate(context: vscode.ExtensionContext) {
             if (!editor) {
                 return;
             }
-            await verifyFile(editor.document);
+            await verifyFile(editor.document, codeLensProvider);
         })
     );
 
@@ -105,27 +105,21 @@ export function activate(context: vscode.ExtensionContext) {
             const autoVerify = config.get<boolean>('autoVerifyOnSave', false);
 
             if (autoVerify && document.languageId === 'python') {
-                await verifyFile(document);
+                await verifyFile(document, codeLensProvider);
             }
         })
     );
 
-    // Update decorations when document changes
+    // Clear verification status when document content changes
     context.subscriptions.push(
-        vscode.window.onDidChangeActiveTextEditor((editor) => {
-            if (editor) {
-                decorationProvider.updateDecorations(editor);
-            }
+        vscode.workspace.onDidChangeTextDocument((event) => {
+            // Clear verification status when user edits the document
+            codeLensProvider.clearVerificationStatus(event.document);
         })
     );
-
-    // Initial decoration update
-    if (vscode.window.activeTextEditor) {
-        decorationProvider.updateDecorations(vscode.window.activeTextEditor);
-    }
 }
 
-async function verifyFunction(document: vscode.TextDocument, line: number) {
+async function verifyFunction(document: vscode.TextDocument, line: number, codeLensProvider: CodeLensProvider) {
     const editor = vscode.window.activeTextEditor;
     if (!editor || editor.document !== document) {
         return;
@@ -138,6 +132,9 @@ async function verifyFunction(document: vscode.TextDocument, line: number) {
         return;
     }
 
+    // Show verifying state
+    codeLensProvider.setVerifying(document, line, true);
+
     // Show progress
     await vscode.window.withProgress(
         {
@@ -146,9 +143,6 @@ async function verifyFunction(document: vscode.TextDocument, line: number) {
             cancellable: false
         },
         async (progress) => {
-            // Start spinner decoration
-            decorationProvider.showSpinner(editor, line);
-
             try {
                 const result = await tauClient.verifyFunctionStream(
                     document.uri.fsPath,
@@ -161,28 +155,32 @@ async function verifyFunction(document: vscode.TextDocument, line: number) {
                     }
                 );
 
-                // Update decorations
+                // Update CodeLens status
                 if (result && result.verified) {
-                    decorationProvider.showSuccess(editor, line, result.hash || '');
+                    codeLensProvider.setVerificationStatus(document, line, true, result.hash);
                     vscode.window.showInformationMessage(`✓ ${functionName} verified successfully!`);
                 } else {
-                    decorationProvider.showFailure(editor, line);
+                    const reason = result?.reason || 'Verification failed';
+                    codeLensProvider.setVerificationStatus(document, line, false, undefined, reason);
                     vscode.window.showErrorMessage(`✗ ${functionName} verification failed`);
 
                     // Add diagnostics
                     if (result) {
-                        diagnosticsManager.addDiagnostic(document, line, result.reason || 'Verification failed');
+                        diagnosticsManager.addDiagnostic(document, line, reason);
                     }
                 }
             } catch (error) {
-                decorationProvider.clearSpinner(editor, line);
+                codeLensProvider.setVerificationStatus(document, line, false, undefined, `Error: ${error}`);
                 vscode.window.showErrorMessage(`Error: ${error}`);
+            } finally {
+                // Clear verifying state
+                codeLensProvider.setVerifying(document, line, false);
             }
         }
     );
 }
 
-async function verifyFile(document: vscode.TextDocument) {
+async function verifyFile(document: vscode.TextDocument, codeLensProvider: CodeLensProvider) {
     const editor = vscode.window.activeTextEditor;
     if (!editor || editor.document !== document) {
         return;
@@ -206,15 +204,16 @@ async function verifyFile(document: vscode.TextDocument) {
                 // Clear existing diagnostics
                 diagnosticsManager.clear(document);
 
-                // Update decorations and diagnostics
+                // Update CodeLens status and diagnostics
                 for (const result of summary.results) {
                     const line = result.line;
 
                     if (result.verified) {
-                        decorationProvider.showSuccess(editor, line, result.hash || '');
+                        codeLensProvider.setVerificationStatus(document, line, true, result.hash);
                     } else {
-                        decorationProvider.showFailure(editor, line);
-                        diagnosticsManager.addDiagnostic(document, line, result.reason || 'Verification failed');
+                        const reason = result.reason || 'Verification failed';
+                        codeLensProvider.setVerificationStatus(document, line, false, undefined, reason);
+                        diagnosticsManager.addDiagnostic(document, line, reason);
                     }
                 }
 
@@ -227,8 +226,8 @@ async function verifyFile(document: vscode.TextDocument) {
 }
 
 function findFunctionNameAtLine(document: vscode.TextDocument, line: number): string | null {
-    // Search backwards from the line to find the function definition
-    for (let i = line; i >= Math.max(0, line - 20); i--) {
+    // Search forward from @safe to find the function definition (skipping decorators)
+    for (let i = line; i < Math.min(document.lineCount, line + 20); i++) {
         const lineText = document.lineAt(i).text;
         const match = lineText.match(/def\s+(\w+)\s*\(/);
         if (match) {
