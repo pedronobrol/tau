@@ -1,0 +1,226 @@
+{
+  "schema_version": "1.0.0",
+  "metadata": {
+    "timestamp": "2025-10-29T21:01:54.301617+00:00",
+    "source_file": "examples/safe_functions.py",
+    "verifier_version": "tau-0.1.0",
+    "prover": "Alt-Ergo,2.6.2",
+    "prover_timeout": 10
+  },
+  "summary": {
+    "total_functions": 6,
+    "passed": 3,
+    "failed": 3,
+    "success_rate": 0.5,
+    "bugs_detected": 1
+  },
+  "results": [
+    {
+      "function": {
+        "name": "count_to",
+        "line": 17,
+        "source_hash": "15f950a5065a64a2985dd176a091552cf44822a5d2aa879e5dc5895b8f59d60c",
+        "source_length": 114
+      },
+      "verification": {
+        "verified": true,
+        "status": "passed",
+        "reason": "Proof succeeded with provided invariants",
+        "duration_seconds": 0.3
+      },
+      "specification": {
+        "requires": "n >= 0",
+        "ensures": "result = n",
+        "invariants": [
+          "0 <= !i <= n",
+          "!c = !i"
+        ],
+        "variant": "n - !i"
+      },
+      "artifacts": {
+        "whyml_file": "./why_out/count_to.why",
+        "whyml_hash": "6b27526da7a678b9c17dc8d67eb9c1188f2b895f26abe6902cf20fee634028d5",
+        "lean_file": "./why_out/count_to.lean",
+        "lean_hash": "8124a0afb436c66ade9d1739c8687b6bc173ac4421bf36582b0e9bf7a3b6eeef",
+        "lean_reconstruction": "template",
+        "combined_hash": "b726685529c971642d078e32f6ad9f03f51cc92d2b49a75ed4ce0150c34a80c0"
+      }
+    },
+    {
+      "function": {
+        "name": "multiply",
+        "line": 31,
+        "source_hash": "b5de312bc734c2ae4df17cf5643e5be1788f7613fb53fb38376f7bbe44713d7e",
+        "source_length": 142
+      },
+      "verification": {
+        "verified": false,
+        "status": "failed",
+        "reason": "Proof failed (could not generate valid invariants)",
+        "duration_seconds": 14.83
+      },
+      "specification": {
+        "requires": "n >= 0",
+        "ensures": "result = n * x",
+        "invariants": null,
+        "variant": null
+      },
+      "llm": {
+        "used": true,
+        "model": "claude-3-5-haiku-20241022",
+        "rounds": 3,
+        "total_attempts": 3
+      },
+      "artifacts": {
+        "whyml_file": "./why_out/multiply_round03.why",
+        "whyml_hash": "a2a41026aaa1125a68386b13681c89c68ac2368e9ae0763756fe3c4a2f9116ae",
+        "lean_file": "./why_out/multiply_round03.lean",
+        "lean_hash": "44bdf88f72e59f0f636fd14d8ce047fa431d26ef7675a0e6c73a363f97b769bf",
+        "lean_reconstruction": "template",
+        "combined_hash": "1ff77cde554f4d7c23b71a69169d7fd17621bd1602d0732eff1755ad3e4d580a"
+      }
+    },
+    {
+      "function": {
+        "name": "buggy_count",
+        "line": 45,
+        "source_hash": "de2b24c2e0ac866e904860bc783b73227d6c638bb9bbcbd78655210308c39e43",
+        "source_length": 118
+      },
+      "verification": {
+        "verified": false,
+        "status": "failed",
+        "reason": "Bug detected: The loop runs n+1 times instead of n times due to the condition i <= n",
+        "duration_seconds": 7.77
+      },
+      "specification": {
+        "requires": "n >= 0",
+        "ensures": "result = n",
+        "invariants": null,
+        "variant": null
+      },
+      "llm": {
+        "used": true,
+        "model": "claude-3-5-haiku-20241022",
+        "rounds": 1,
+        "total_attempts": 1
+      },
+      "bug_analysis": {
+        "detected": true,
+        "bug_type": "off_by_one",
+        "explanation": "The loop runs n+1 times instead of n times due to the condition i <= n",
+        "confidence": 0.0
+      },
+      "artifacts": {
+        "whyml_file": "./why_out/buggy_count_round01.why",
+        "whyml_hash": "da717b2c473e767a126a31f88966fcb81c086d5fb741b75db7f5fe703251e5e9",
+        "lean_file": "./why_out/buggy_count_round01.lean",
+        "lean_hash": "5820243058305268a45930bbc3dadb57988f237b185b085b389664c78fd0208c",
+        "lean_reconstruction": "template",
+        "combined_hash": "9965c7053d1459232074da77f95b9ab2c39ee34e7a8161efae52b248a0bf96a0"
+      }
+    },
+    {
+      "function": {
+        "name": "clamp",
+        "line": 59,
+        "source_hash": "3208ea64008877b2f89c1190ac824446412d0f28a4a1133a8c78fd99fc25ac22",
+        "source_length": 148
+      },
+      "verification": {
+        "verified": true,
+        "status": "passed",
+        "reason": "Proof succeeded (LLM generated invariants in 1 rounds)",
+        "duration_seconds": 1.29
+      },
+      "specification": {
+        "requires": "lo <= hi",
+        "ensures": "(x < lo -> result = lo) /\\ (x > hi -> result = hi) /\\ (lo <= x /\\ x <= hi -> result = x)",
+        "invariants": null,
+        "variant": null
+      },
+      "llm": {
+        "used": true,
+        "model": "claude-3-5-haiku-20241022",
+        "rounds": 1,
+        "total_attempts": 1
+      },
+      "artifacts": {
+        "whyml_file": "./why_out/clamp_round01.why",
+        "whyml_hash": "1ca33a5e05ced5f93bd115a5aba1ddcac450cecd6ff2b35103f7dbbc98942bd8",
+        "lean_file": "./why_out/clamp_round01.lean",
+        "lean_hash": "45069600161cf6336ef42adcf10c33a2f15c4c2bcbb9148f6c07dc075f176440",
+        "lean_reconstruction": "template",
+        "combined_hash": "afd2d0ac0e68fecdbd7e108e7c48b4ad751db1d818a94545afee232df31111d8"
+      }
+    },
+    {
+      "function": {
+        "name": "multiply_positive",
+        "line": 77,
+        "source_hash": "0c9b71290f7bb10dead7cc37e38d92b415af8805b29de5c251fd79aa933a2dc0",
+        "source_length": 151
+      },
+      "verification": {
+        "verified": true,
+        "status": "passed",
+        "reason": "Proof succeeded (LLM generated invariants in 1 rounds)",
+        "duration_seconds": 1.61
+      },
+      "specification": {
+        "requires": "n >= 0 /\\ x >= 0",
+        "ensures": "result >= 0 /\\ result = n * x",
+        "invariants": null,
+        "variant": null
+      },
+      "llm": {
+        "used": true,
+        "model": "claude-3-5-haiku-20241022",
+        "rounds": 1,
+        "total_attempts": 1
+      },
+      "artifacts": {
+        "whyml_file": "./why_out/multiply_positive_round01.why",
+        "whyml_hash": "669f56ed1570b17676c26a250fdc216da618bb8a916c9ca939f88b5aedbebed7",
+        "lean_file": "./why_out/multiply_positive_round01.lean",
+        "lean_hash": "f8b339619e3ef357500fd32cdf67865a2a5d5ef12bc4947d76780ed5c552521a",
+        "lean_reconstruction": "template",
+        "combined_hash": "ba43c1a87ec61e2e0434aaea82db1119e28b5104eddad33a02f96a89b21f2c37"
+      }
+    },
+    {
+      "function": {
+        "name": "sum_to",
+        "line": 91,
+        "source_hash": "58e7324ba7f3099de3d7672ca15c8c9eb8d5a50b585312e3508a2d5349a346d9",
+        "source_length": 113
+      },
+      "verification": {
+        "verified": false,
+        "status": "failed",
+        "reason": "Proof failed (could not generate valid invariants)",
+        "duration_seconds": 27.94
+      },
+      "specification": {
+        "requires": "n >= 0",
+        "ensures": "result = div (n * (n + 1)) 2",
+        "invariants": null,
+        "variant": null
+      },
+      "llm": {
+        "used": true,
+        "model": "claude-3-5-haiku-20241022",
+        "rounds": 3,
+        "total_attempts": 3
+      },
+      "artifacts": {
+        "whyml_file": "./why_out/sum_to_round03.why",
+        "whyml_hash": "5d02e79f27cdfb783df321b98678b5bb9df8c9b62a2e8fee226965835ef12e0c",
+        "lean_file": "./why_out/sum_to_round03.lean",
+        "lean_hash": "1e10e1f921f6622d288482c9838049a75433ac6f11a1eaa4667eab5fd9ec51d4",
+        "lean_reconstruction": "template",
+        "combined_hash": "23a1156f4035167aebc1beb3f6a64a3856265be26632726615cd3de64bf2de9d"
+      }
+    }
+  ]
+}

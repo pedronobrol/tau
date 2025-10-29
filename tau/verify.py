@@ -1,22 +1,15 @@
-#!/usr/bin/env python3
 """
-Verify @safe decorated functions in Python files.
-
-Usage:
-    python3 verify_safe.py myfile.py
-    python3 verify_safe.py myfile.py --api-key sk-...
-    python3 verify_safe.py myfile.py --verbose
+TAU verification library.
+Main API for verifying @safe decorated functions.
 """
 
-import argparse
-import os
-import sys
-from pathlib import Path
-from typing import List, Dict, Any
+import time
+from typing import List, Dict, Any, Optional
 
 from tau.parser import SafeFunctionParser
 from tau.llm import feedback_loop_transpile
 from tau import transpile
+from tau.output import VerificationJSONFormatter
 
 
 class VerificationResult:
@@ -29,6 +22,14 @@ class VerificationResult:
         self.reason = ""
         self.used_llm = False
         self.bug_type = None
+        # Additional fields for JSON output
+        self.python_source = ""
+        self.duration = 0.0
+        self.specification = {}
+        self.llm_info = None
+        self.bug_analysis = None
+        self.whyml_file = None
+        self.lean_file = None
 
     def __repr__(self):
         status = "✅ PASS" if self.verified else "❌ FAIL"
@@ -99,6 +100,9 @@ def verify_function(func_info: Dict[str, Any], api_key: str = None, verbose: boo
         VerificationResult
     """
     result = VerificationResult(func_info["name"], func_info["lineno"])
+    result.python_source = func_info["source"]
+
+    start_time = time.time()
 
     try:
         # Prepare metadata
@@ -107,6 +111,14 @@ def verify_function(func_info: Dict[str, Any], api_key: str = None, verbose: boo
                 "requires": func_info["requires"],
                 "ensures": func_info["ensures"]
             }
+        }
+
+        # Build specification dict for JSON
+        result.specification = {
+            "requires": func_info["requires"],
+            "ensures": func_info["ensures"],
+            "invariants": func_info["invariants"],
+            "variant": func_info["variant"]
         }
 
         # If invariants/variant provided, use manual mode
@@ -127,6 +139,10 @@ def verify_function(func_info: Dict[str, Any], api_key: str = None, verbose: boo
                 base_name=func_info["name"],
                 verify=True
             )
+
+            # Capture file paths
+            result.whyml_file = transpile_result.get("why_file")
+            result.lean_file = transpile_result.get("lean_file")
 
             verification_output = transpile_result.get("verification", "")
 
@@ -153,17 +169,41 @@ def verify_function(func_info: Dict[str, Any], api_key: str = None, verbose: boo
                 verify=True
             )
 
+            # Capture file paths
+            result.whyml_file = transpile_result.get("why_file")
+            result.lean_file = transpile_result.get("lean_file")
+
             result.verified = transpile_result.get("verified", False)
+
+            # Capture LLM info
+            rounds = transpile_result.get("rounds", [])
+            if rounds:
+                result.llm_info = {
+                    "used": True,
+                    "model": "claude-3-5-haiku-20241022",
+                    "rounds": transpile_result.get("final_round", len(rounds)),
+                    "total_attempts": len(rounds)
+                }
 
             if result.verified:
                 result.reason = f"Proof succeeded (LLM generated invariants in {transpile_result.get('final_round', 0)} rounds)"
+                # Update specification with generated invariants
+                if rounds and rounds[-1].get("invariants"):
+                    result.specification["invariants"] = rounds[-1]["invariants"]
+                if rounds and rounds[-1].get("variant"):
+                    result.specification["variant"] = rounds[-1]["variant"]
             else:
                 # Check if bug was detected
-                rounds = transpile_result.get("rounds", [])
                 if rounds and rounds[0].get("bug_analysis"):
                     bug_analysis = rounds[0]["bug_analysis"]
                     result.reason = f"Bug detected: {bug_analysis.get('explanation', 'unknown')}"
                     result.bug_type = bug_analysis.get("bug_type", "unknown")
+                    result.bug_analysis = {
+                        "detected": True,
+                        "bug_type": bug_analysis.get("bug_type", "unknown"),
+                        "explanation": bug_analysis.get("explanation", "unknown"),
+                        "confidence": bug_analysis.get("confidence", 0.0)
+                    }
                 else:
                     result.reason = "Proof failed (could not generate valid invariants)"
 
@@ -171,10 +211,13 @@ def verify_function(func_info: Dict[str, Any], api_key: str = None, verbose: boo
         result.verified = False
         result.reason = f"Error: {str(e)}"
 
+    result.duration = time.time() - start_time
     return result
 
 
-def verify_file(file_path: str, api_key: str = None, verbose: bool = False) -> VerificationSummary:
+def verify_file(file_path: str, api_key: str = None, verbose: bool = False,
+                json_output: Optional[str] = None, prover: str = "Alt-Ergo,2.6.2",
+                timeout: int = 10) -> VerificationSummary:
     """
     Verify all @safe decorated functions in a file.
 
@@ -182,6 +225,9 @@ def verify_file(file_path: str, api_key: str = None, verbose: bool = False) -> V
         file_path: Path to Python file
         api_key: Optional Anthropic API key
         verbose: Print verbose output
+        json_output: Optional path to save JSON output
+        prover: Why3 prover to use
+        timeout: Prover timeout in seconds
 
     Returns:
         VerificationSummary
@@ -200,50 +246,29 @@ def verify_file(file_path: str, api_key: str = None, verbose: bool = False) -> V
         result = verify_function(func_info, api_key, verbose)
         summary.add_result(result)
 
+    # Generate JSON output if requested
+    if json_output:
+        formatter = VerificationJSONFormatter(file_path, prover, timeout)
+
+        for result in summary.results:
+            formatter.add_result(
+                function_name=result.name,
+                line_number=result.lineno,
+                python_source=result.python_source,
+                verified=result.verified,
+                status="passed" if result.verified else "failed",
+                reason=result.reason,
+                duration=result.duration,
+                specification=result.specification,
+                llm_info=result.llm_info,
+                bug_analysis=result.bug_analysis,
+                whyml_file=result.whyml_file,
+                lean_file=result.lean_file
+            )
+
+        formatter.save_to_file(json_output)
+
+        if verbose:
+            print(f"\n💾 JSON output saved to: {json_output}")
+
     return summary
-
-
-def main():
-    parser = argparse.ArgumentParser(
-        description="Verify @safe decorated functions in Python files",
-        formatter_class=argparse.RawDescriptionHelpFormatter,
-        epilog="""
-Examples:
-    # Verify file with manual invariants
-    python3 verify_safe.py examples/safe_functions.py
-
-    # Verify file with LLM (requires API key)
-    python3 verify_safe.py examples/safe_functions.py --api-key sk-...
-
-    # Use API key from environment
-    export ANTHROPIC_API_KEY=sk-...
-    python3 verify_safe.py examples/safe_functions.py --verbose
-        """
-    )
-
-    parser.add_argument("file", help="Python file to verify")
-    parser.add_argument("--api-key", help="Anthropic API key (or use ANTHROPIC_API_KEY env var)")
-    parser.add_argument("-v", "--verbose", action="store_true", help="Verbose output")
-
-    args = parser.parse_args()
-
-    # Check file exists
-    if not Path(args.file).exists():
-        print(f"❌ Error: File not found: {args.file}")
-        sys.exit(1)
-
-    # Get API key
-    api_key = args.api_key or os.environ.get("ANTHROPIC_API_KEY")
-
-    # Verify file
-    summary = verify_file(args.file, api_key, args.verbose)
-
-    # Print summary
-    summary.print_summary()
-
-    # Exit with appropriate code
-    sys.exit(0 if summary.failed == 0 else 1)
-
-
-if __name__ == "__main__":
-    main()
