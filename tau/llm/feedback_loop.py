@@ -128,7 +128,16 @@ def _get_client(api_key: Optional[str] = None) -> Optional[Anthropic]:
     try:
         if api_key:
             return Anthropic(api_key=api_key)
-        return Anthropic()  # Uses ANTHROPIC_API_KEY env var
+
+        # Check if env var is actually set before creating client
+        # The Anthropic() constructor succeeds even without API key,
+        # but will fail on first API call
+        import os
+        if 'ANTHROPIC_API_KEY' in os.environ and os.environ['ANTHROPIC_API_KEY']:
+            return Anthropic()
+
+        # No API key available
+        return None
     except Exception:
         return None
 
