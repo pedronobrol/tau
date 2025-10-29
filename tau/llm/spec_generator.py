@@ -122,6 +122,22 @@ async def generate_specifications(
             json_end = response_text.find("```", json_start)
             response_text = response_text[json_start:json_end].strip()
 
+        # Try to find JSON object boundaries
+        if response_text.strip().startswith('{'):
+            # Find the matching closing brace
+            brace_count = 0
+            json_end_idx = 0
+            for i, char in enumerate(response_text):
+                if char == '{':
+                    brace_count += 1
+                elif char == '}':
+                    brace_count -= 1
+                    if brace_count == 0:
+                        json_end_idx = i + 1
+                        break
+            if json_end_idx > 0:
+                response_text = response_text[:json_end_idx]
+
         data = json.loads(response_text)
 
         # Convert to GeneratedSpecs
@@ -196,6 +212,22 @@ def generate_specifications_sync(
             json_start = response_text.find("```") + 3
             json_end = response_text.find("```", json_start)
             response_text = response_text[json_start:json_end].strip()
+
+        # Try to find JSON object boundaries
+        if response_text.strip().startswith('{'):
+            # Find the matching closing brace
+            brace_count = 0
+            json_end_idx = 0
+            for i, char in enumerate(response_text):
+                if char == '{':
+                    brace_count += 1
+                elif char == '}':
+                    brace_count -= 1
+                    if brace_count == 0:
+                        json_end_idx = i + 1
+                        break
+            if json_end_idx > 0:
+                response_text = response_text[:json_end_idx]
 
         data = json.loads(response_text)
 

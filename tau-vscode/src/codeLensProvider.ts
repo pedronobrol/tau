@@ -6,7 +6,7 @@ export class CodeLensProvider implements vscode.CodeLensProvider {
 
     public provideCodeLenses(
         document: vscode.TextDocument,
-        token: vscode.CancellationToken
+        _token: vscode.CancellationToken
     ): vscode.CodeLens[] | Thenable<vscode.CodeLens[]> {
         const codeLenses: vscode.CodeLens[] = [];
 
@@ -16,24 +16,32 @@ export class CodeLensProvider implements vscode.CodeLensProvider {
             const text = line.text.trim();
 
             if (text.startsWith('@safe')) {
-                // Add "Run TAU Verification" CodeLens
                 const range = line.range;
-                const command: vscode.Command = {
-                    title: '▶ Run TAU Verification',
+                const hasSpecs = this.hasSpecsBelow(document, i);
+
+                // Add verification CodeLens
+                const verifyCommand: vscode.Command = {
+                    title: '▶ Verify',
                     command: 'tau.verify',
                     arguments: [document, i]
                 };
+                codeLenses.push(new vscode.CodeLens(range, verifyCommand));
 
-                codeLenses.push(new vscode.CodeLens(range, command));
-
-                // If specs exist, also add "Regenerate Specs" option
-                if (this.hasSpecsBelow(document, i)) {
+                // Add spec generation/regeneration CodeLens
+                if (hasSpecs) {
                     const regenCommand: vscode.Command = {
                         title: '🔄 Regenerate Specs',
                         command: 'tau.generateSpecs',
                         arguments: [document, i]
                     };
                     codeLenses.push(new vscode.CodeLens(range, regenCommand));
+                } else {
+                    const genCommand: vscode.Command = {
+                        title: '✨ Generate Specs',
+                        command: 'tau.generateSpecs',
+                        arguments: [document, i]
+                    };
+                    codeLenses.push(new vscode.CodeLens(range, genCommand));
                 }
             }
         }
@@ -43,7 +51,7 @@ export class CodeLensProvider implements vscode.CodeLensProvider {
 
     public resolveCodeLens(
         codeLens: vscode.CodeLens,
-        token: vscode.CancellationToken
+        _token: vscode.CancellationToken
     ): vscode.CodeLens | Thenable<vscode.CodeLens> {
         return codeLens;
     }

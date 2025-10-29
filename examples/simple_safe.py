@@ -2,15 +2,13 @@
 Simple example with manual invariants (no LLM needed)
 """
 
-from tau.decorators import safe, requires, ensures, invariant, variant
+from tau_decorators import safe, requires, ensures, invariant, variant
 
 
 @safe
 @requires("n >= 0")
 @ensures("result = n")
-@invariant("0 <= !i <= n")
-@invariant("!c = !i")
-@variant("n - !i")
+@ensures("result >= 0")
 def count_to(n: int) -> int:
     """Count from 0 to n"""
     c = 0

@@ -11,7 +11,8 @@ export class DiagnosticsManager {
      * Add a diagnostic for a verification failure
      */
     public addDiagnostic(document: vscode.TextDocument, line: number, message: string): void {
-        const diagnostics = this.diagnosticCollection.get(document.uri) || [];
+        const existingDiagnostics = this.diagnosticCollection.get(document.uri) || [];
+        const diagnostics = [...existingDiagnostics];
 
         const diagnostic = new vscode.Diagnostic(
             new vscode.Range(line, 0, line, Number.MAX_VALUE),

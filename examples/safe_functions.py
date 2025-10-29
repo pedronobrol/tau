@@ -4,7 +4,7 @@ Example file demonstrating @safe decorated functions.
 This file contains both correct and buggy functions to test the verification system.
 """
 
-from tau.decorators import safe, requires, ensures, invariant, variant
+from tau_decorators import safe, requires, ensures, invariant, variant
 
 
 # Example 1: Simple function with manual invariants
