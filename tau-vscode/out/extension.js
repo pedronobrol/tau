@@ -77,12 +77,22 @@ function activate(context) {
     const codeLensProvider = new codeLensProvider_1.CodeLensProvider();
     context.subscriptions.push(vscode.languages.registerCodeLensProvider({ language: 'python' }, codeLensProvider));
     // Register commands
-    context.subscriptions.push(vscode.commands.registerCommand('tau.generateSpecs', async () => {
+    context.subscriptions.push(vscode.commands.registerCommand('tau.generateSpecs', async (_document, line) => {
         const editor = vscode.window.activeTextEditor;
         if (!editor) {
             return;
         }
-        await completionProvider.generateSpecsAtCursor(editor);
+        // If line is provided (clicked from CodeLens), use it. Otherwise find current cursor line
+        const targetLine = line !== undefined ? line : editor.selection.active.line;
+        // Show loading state in CodeLens
+        codeLensProvider.setGenerating(editor.document, targetLine, true);
+        try {
+            await completionProvider.generateSpecsAtCursor(editor);
+        }
+        finally {
+            // Hide loading state
+            codeLensProvider.setGenerating(editor.document, targetLine, false);
+        }
     }));
     context.subscriptions.push(vscode.commands.registerCommand('tau.verify', async (document, line) => {
         await verifyFunction(document, line);

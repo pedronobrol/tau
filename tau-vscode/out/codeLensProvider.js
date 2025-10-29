@@ -39,6 +39,7 @@ class CodeLensProvider {
     constructor() {
         this._onDidChangeCodeLenses = new vscode.EventEmitter();
         this.onDidChangeCodeLenses = this._onDidChangeCodeLenses.event;
+        this.generatingLines = new Set(); // Track which lines are generating (format: "filepath:line")
     }
     provideCodeLenses(document, _token) {
         const codeLenses = [];
@@ -49,6 +50,8 @@ class CodeLensProvider {
             if (text.startsWith('@safe')) {
                 const range = line.range;
                 const hasSpecs = this.hasSpecsBelow(document, i);
+                const lineKey = `${document.uri.fsPath}:${i}`;
+                const isGenerating = this.generatingLines.has(lineKey);
                 // Add verification CodeLens
                 const verifyCommand = {
                     title: '▶ Verify',
@@ -56,8 +59,17 @@ class CodeLensProvider {
                     arguments: [document, i]
                 };
                 codeLenses.push(new vscode.CodeLens(range, verifyCommand));
-                // Add spec generation/regeneration CodeLens
-                if (hasSpecs) {
+                // Add spec generation/regeneration CodeLens with loading state
+                if (isGenerating) {
+                    // Show loading spinner
+                    const loadingCommand = {
+                        title: '⏳ Generating...',
+                        command: '', // No command while loading
+                        arguments: []
+                    };
+                    codeLenses.push(new vscode.CodeLens(range, loadingCommand));
+                }
+                else if (hasSpecs) {
                     const regenCommand = {
                         title: '🔄 Regenerate Specs',
                         command: 'tau.generateSpecs',
@@ -95,6 +107,16 @@ class CodeLensProvider {
             }
         }
         return false;
+    }
+    setGenerating(document, line, isGenerating) {
+        const lineKey = `${document.uri.fsPath}:${line}`;
+        if (isGenerating) {
+            this.generatingLines.add(lineKey);
+        }
+        else {
+            this.generatingLines.delete(lineKey);
+        }
+        this.refresh();
     }
 }
 exports.CodeLensProvider = CodeLensProvider;

@@ -3,6 +3,7 @@ import * as vscode from 'vscode';
 export class CodeLensProvider implements vscode.CodeLensProvider {
     private _onDidChangeCodeLenses: vscode.EventEmitter<void> = new vscode.EventEmitter<void>();
     public readonly onDidChangeCodeLenses: vscode.Event<void> = this._onDidChangeCodeLenses.event;
+    private generatingLines: Set<string> = new Set(); // Track which lines are generating (format: "filepath:line")
 
     public provideCodeLenses(
         document: vscode.TextDocument,
@@ -18,6 +19,8 @@ export class CodeLensProvider implements vscode.CodeLensProvider {
             if (text.startsWith('@safe')) {
                 const range = line.range;
                 const hasSpecs = this.hasSpecsBelow(document, i);
+                const lineKey = `${document.uri.fsPath}:${i}`;
+                const isGenerating = this.generatingLines.has(lineKey);
 
                 // Add verification CodeLens
                 const verifyCommand: vscode.Command = {
@@ -27,8 +30,16 @@ export class CodeLensProvider implements vscode.CodeLensProvider {
                 };
                 codeLenses.push(new vscode.CodeLens(range, verifyCommand));
 
-                // Add spec generation/regeneration CodeLens
-                if (hasSpecs) {
+                // Add spec generation/regeneration CodeLens with loading state
+                if (isGenerating) {
+                    // Show loading spinner
+                    const loadingCommand: vscode.Command = {
+                        title: '⏳ Generating...',
+                        command: '', // No command while loading
+                        arguments: []
+                    };
+                    codeLenses.push(new vscode.CodeLens(range, loadingCommand));
+                } else if (hasSpecs) {
                     const regenCommand: vscode.Command = {
                         title: '🔄 Regenerate Specs',
                         command: 'tau.generateSpecs',
@@ -72,5 +83,15 @@ export class CodeLensProvider implements vscode.CodeLensProvider {
             }
         }
         return false;
+    }
+
+    public setGenerating(document: vscode.TextDocument, line: number, isGenerating: boolean): void {
+        const lineKey = `${document.uri.fsPath}:${line}`;
+        if (isGenerating) {
+            this.generatingLines.add(lineKey);
+        } else {
+            this.generatingLines.delete(lineKey);
+        }
+        this.refresh();
     }
 }

@@ -61,12 +61,24 @@ export function activate(context: vscode.ExtensionContext) {
 
     // Register commands
     context.subscriptions.push(
-        vscode.commands.registerCommand('tau.generateSpecs', async () => {
+        vscode.commands.registerCommand('tau.generateSpecs', async (_document?: vscode.TextDocument, line?: number) => {
             const editor = vscode.window.activeTextEditor;
             if (!editor) {
                 return;
             }
-            await completionProvider.generateSpecsAtCursor(editor);
+
+            // If line is provided (clicked from CodeLens), use it. Otherwise find current cursor line
+            const targetLine = line !== undefined ? line : editor.selection.active.line;
+
+            // Show loading state in CodeLens
+            codeLensProvider.setGenerating(editor.document, targetLine, true);
+
+            try {
+                await completionProvider.generateSpecsAtCursor(editor);
+            } finally {
+                // Hide loading state
+                codeLensProvider.setGenerating(editor.document, targetLine, false);
+            }
         })
     );
 

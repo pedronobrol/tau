@@ -68,6 +68,8 @@ class CompletionProvider {
             vscode.window.showErrorMessage('Could not extract function source');
             return;
         }
+        // Find existing specs to delete (if regenerating)
+        const existingSpecsRange = this.findExistingSpecs(document, safeLine, functionLine);
         // Show progress notification
         const insertPosition = new vscode.Position(safeLine + 1, 0);
         await vscode.window.withProgress({
@@ -83,8 +85,13 @@ class CompletionProvider {
             }
             // Format specifications
             const specsText = this.formatSpecs(specs);
-            // Insert specifications
+            // Delete old specs and insert new ones
             await editor.edit(editBuilder => {
+                // Delete existing specs if they exist
+                if (existingSpecsRange) {
+                    editBuilder.delete(existingSpecsRange);
+                }
+                // Insert new specifications
                 editBuilder.insert(insertPosition, specsText);
             });
             vscode.window.showInformationMessage('✓ Specifications generated successfully!');
@@ -110,6 +117,30 @@ class CompletionProvider {
         }
         // Don't show invariants/variants - TAU auto-generates them during verification!
         return result;
+    }
+    /**
+     * Find existing @requires/@ensures specs between @safe and function definition
+     * Returns a range to delete, or null if no specs exist
+     */
+    findExistingSpecs(document, safeLine, functionLine) {
+        let firstSpecLine = null;
+        let lastSpecLine = null;
+        // Look for @requires and @ensures between @safe and function definition
+        for (let i = safeLine + 1; i < functionLine; i++) {
+            const line = document.lineAt(i).text.trim();
+            if (line.startsWith('@requires') || line.startsWith('@ensures')) {
+                if (firstSpecLine === null) {
+                    firstSpecLine = i;
+                }
+                lastSpecLine = i;
+            }
+        }
+        // If we found specs, return a range that includes all lines from first to last spec
+        if (firstSpecLine !== null && lastSpecLine !== null) {
+            return new vscode.Range(new vscode.Position(firstSpecLine, 0), new vscode.Position(lastSpecLine + 1, 0) // +1 to include the newline
+            );
+        }
+        return null;
     }
     findSafeDecoratorAbove(document, startLine) {
         for (let i = startLine; i >= Math.max(0, startLine - 10); i--) {
