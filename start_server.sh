@@ -9,4 +9,4 @@ fi
 # Start server
 echo "Starting TAU API Server..."
 echo "API docs will be available at http://localhost:8000/docs"
-python3 tau/server.py
+python3 -m tau.server.app

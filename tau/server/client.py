@@ -6,7 +6,7 @@ import ast
 from typing import Optional, Callable, List, Dict, Any
 from pathlib import Path
 
-from tau.api_models import (
+from tau.server.models import (
     GeneratedSpecs, VerificationProgress, ValidationResult,
     FunctionInfo, VerificationStage
 )
@@ -15,12 +15,12 @@ from tau.llm.spec_generator import generate_specifications_sync
 from tau.parser import SafeFunctionParser
 
 
-class TauAPI:
+class TauClient:
     """
     Unified API for TAU verification and spec generation.
 
     Example usage:
-        api = TauAPI(api_key="sk-ant-...")
+        client = TauClient(api_key="sk-ant-...")
 
         # Generate specs
         specs = api.generate_specs(function_source)

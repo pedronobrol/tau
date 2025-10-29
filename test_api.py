@@ -2,11 +2,11 @@
 """
 Test TAU API functionality
 """
-from tau.api import TauAPI
+from tau.server.client import TauClient
 from tau.api_models import FunctionInfo
 
 # Initialize API
-api = TauAPI()
+api = TauClient()
 
 print("=" * 60)
 print("TAU API Test Suite")

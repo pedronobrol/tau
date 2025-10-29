@@ -3,7 +3,7 @@ LLM-based specification generator for Python functions
 """
 import os
 from typing import Optional, List
-from tau.api_models import GeneratedSpecs, FunctionInfo
+from tau.server.models import GeneratedSpecs, FunctionInfo
 
 
 SPEC_GENERATION_PROMPT = """You are a formal verification expert. Analyze this Python function and generate formal specifications.

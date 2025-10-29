@@ -13,8 +13,8 @@ from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
-from tau.api import TauAPI
-from tau.api_models import GeneratedSpecs, VerificationProgress, ValidationResult
+from tau.server.client import TauClient
+from tau.server.models import GeneratedSpecs, VerificationProgress, ValidationResult
 
 
 # ============================================================================
@@ -86,17 +86,17 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Global TAU API instance
-tau_api: Optional[TauAPI] = None
+# Global TAU client instance
+tau_client: Optional[TauClient] = None
 
 
-def get_tau_api() -> TauAPI:
-    """Get or create TAU API instance"""
-    global tau_api
-    if tau_api is None:
+def get_tau_client() -> TauClient:
+    """Get or create TAU client instance"""
+    global tau_client
+    if tau_client is None:
         api_key = os.getenv("ANTHROPIC_API_KEY")
-        tau_api = TauAPI(api_key=api_key)
-    return tau_api
+        tau_client = TauClient(api_key=api_key)
+    return tau_client
 
 
 # ============================================================================
@@ -128,8 +128,8 @@ async def generate_specs(request: GenerateSpecsRequest):
         }
     """
     try:
-        api = get_tau_api()
-        specs = api.generate_specs(
+        client = get_tau_client()
+        specs = client.generate_specs(
             function_source=request.function_source,
             context=request.context,
             include_invariants=request.include_invariants
@@ -167,13 +167,13 @@ async def verify_function(request: VerifyFunctionRequest):
         }
     """
     try:
-        api = get_tau_api()
+        client = get_tau_client()
 
         # Check file exists
         if not Path(request.file_path).exists():
             raise HTTPException(status_code=404, detail="File not found")
 
-        result = api.verify_function(
+        result = client.verify_function(
             file_path=request.file_path,
             function_name=request.function_name,
             auto_generate_invariants=request.auto_generate_invariants
@@ -222,13 +222,13 @@ async def verify_file(request: VerifyFileRequest):
         }
     """
     try:
-        api = get_tau_api()
+        client = get_tau_client()
 
         # Check file exists
         if not Path(request.file_path).exists():
             raise HTTPException(status_code=404, detail="File not found")
 
-        summary = api.verify_file(file_path=request.file_path)
+        summary = client.verify_file(file_path=request.file_path)
 
         # Convert results to dict
         results = []
@@ -275,8 +275,8 @@ async def validate_specs(request: ValidateSpecsRequest):
         }
     """
     try:
-        api = get_tau_api()
-        result = api.validate_specs(
+        client = get_tau_client()
+        result = client.validate_specs(
             requires=request.requires,
             ensures=request.ensures,
             function_source=request.function_source
@@ -338,7 +338,7 @@ async def websocket_verify(websocket: WebSocket):
         function_name = request.get("function_name")
 
         if action == "verify_function":
-            api = get_tau_api()
+            client = get_tau_client()
 
             # Progress callback
             async def progress_callback(progress: VerificationProgress):
@@ -352,7 +352,7 @@ async def websocket_verify(websocket: WebSocket):
                 })
 
             # Verify with streaming
-            result = api.verify_function_stream(
+            result = client.verify_function_stream(
                 file_path=file_path,
                 function_name=function_name,
                 callback=lambda p: asyncio.create_task(progress_callback(p))
@@ -367,7 +367,7 @@ async def websocket_verify(websocket: WebSocket):
             })
 
         elif action == "verify_file":
-            api = get_tau_api()
+            client = get_tau_client()
 
             async def progress_callback(progress: VerificationProgress):
                 await websocket.send_json({
@@ -377,7 +377,7 @@ async def websocket_verify(websocket: WebSocket):
                     "progress": progress.progress
                 })
 
-            summary = api.verify_file(
+            summary = client.verify_file(
                 file_path=file_path,
                 callback=lambda p: asyncio.create_task(progress_callback(p))
             )
