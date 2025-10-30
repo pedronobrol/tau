@@ -158,11 +158,9 @@ async function verifyFunction(document: vscode.TextDocument, line: number, codeL
                 // Update CodeLens status
                 if (result && result.verified) {
                     codeLensProvider.setVerificationStatus(document, line, true, result.hash);
-                    vscode.window.showInformationMessage(`✓ ${functionName} verified successfully!`);
                 } else {
                     const reason = result?.reason || 'Verification failed';
                     codeLensProvider.setVerificationStatus(document, line, false, undefined, reason);
-                    vscode.window.showErrorMessage(`✗ ${functionName} verification failed`);
 
                     // Add diagnostics
                     if (result) {
@@ -171,7 +169,6 @@ async function verifyFunction(document: vscode.TextDocument, line: number, codeL
                 }
             } catch (error) {
                 codeLensProvider.setVerificationStatus(document, line, false, undefined, `Error: ${error}`);
-                vscode.window.showErrorMessage(`Error: ${error}`);
             } finally {
                 // Clear verifying state
                 codeLensProvider.setVerifying(document, line, false);
@@ -216,10 +213,8 @@ async function verifyFile(document: vscode.TextDocument, codeLensProvider: CodeL
                         diagnosticsManager.addDiagnostic(document, line, reason);
                     }
                 }
-
-                vscode.window.showInformationMessage(`Verification complete: ${summary.passed}/${summary.total} passed`);
             } catch (error) {
-                vscode.window.showErrorMessage(`Error: ${error}`);
+                // Silent - errors shown in CodeLens and diagnostics
             }
         }
     );

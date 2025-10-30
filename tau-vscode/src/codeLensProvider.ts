@@ -54,18 +54,18 @@ export class CodeLensProvider implements vscode.CodeLensProvider {
                 else {
                     if (status) {
                         if (status.verified) {
-                            // Passed: only show hash with check icon, no buttons
+                            // Passed: only show hash with green check icon, no buttons
                             const statusCommand: vscode.Command = {
-                                title: `$(pass)  #${status.hash?.substring(0, 8) || ''}`,
+                                title: `$(testing-passed-icon)  #${status.hash?.substring(0, 8) || ''}`,
                                 command: '', // Status is not clickable
                                 arguments: []
                             };
                             codeLenses.push(new vscode.CodeLens(range, statusCommand));
                         } else {
-                            // Failed: show simple x with hash (hover shows reason)
+                            // Failed: show red error icon (hover shows reason)
                             const reason = status.reason || 'Verification failed';
                             const statusCommand: vscode.Command = {
-                                title: `$(x)  Failed`,
+                                title: `$(testing-failed-icon)  #${status.hash?.substring(0, 8) || 'failed'}`,
                                 command: '', // Status is not clickable
                                 arguments: [],
                                 tooltip: reason

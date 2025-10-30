@@ -6,6 +6,9 @@ from tau_decorators import safe, requires, ensures, invariant, variant
 
 
 @safe
+@requires("n >= 0")
+@ensures("result = n")
+@ensures("result >= 0")
 def count_to(n: int) -> int:
     """Count from 0 to n"""
     c = 0

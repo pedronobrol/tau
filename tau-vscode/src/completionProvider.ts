@@ -64,7 +64,6 @@ export class CompletionProvider implements vscode.InlineCompletionItemProvider {
                 const specs = await this.client.generateSpecs(functionSource);
 
                 if (!specs) {
-                    vscode.window.showErrorMessage('Failed to generate specifications. Is TAU server running?');
                     return;
                 }
 
@@ -80,8 +79,6 @@ export class CompletionProvider implements vscode.InlineCompletionItemProvider {
                     // Insert new specifications
                     editBuilder.insert(insertPosition, specsText);
                 });
-
-                vscode.window.showInformationMessage('✓ Specifications generated successfully!');
             }
         );
     }

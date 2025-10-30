@@ -80,7 +80,6 @@ class CompletionProvider {
             // Generate specs using Claude
             const specs = await this.client.generateSpecs(functionSource);
             if (!specs) {
-                vscode.window.showErrorMessage('Failed to generate specifications. Is TAU server running?');
                 return;
             }
             // Format specifications
@@ -94,7 +93,6 @@ class CompletionProvider {
                 // Insert new specifications
                 editBuilder.insert(insertPosition, specsText);
             });
-            vscode.window.showInformationMessage('✓ Specifications generated successfully!');
         });
     }
     /**
