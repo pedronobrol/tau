@@ -50,37 +50,28 @@ export class CompletionProvider implements vscode.InlineCompletionItemProvider {
         // Find existing specs to delete (if regenerating)
         const existingSpecsRange = this.findExistingSpecs(document, safeLine, functionLine);
 
-        // Show progress notification
+        // Generate specs (no progress notification - feedback in CodeLens only)
         const insertPosition = new vscode.Position(safeLine + 1, 0);
 
-        await vscode.window.withProgress(
-            {
-                location: vscode.ProgressLocation.Notification,
-                title: 'Generating specifications with Claude...',
-                cancellable: false
-            },
-            async () => {
-                // Generate specs using Claude
-                const specs = await this.client.generateSpecs(functionSource);
+        // Generate specs using Claude
+        const specs = await this.client.generateSpecs(functionSource);
 
-                if (!specs) {
-                    return;
-                }
+        if (!specs) {
+            return;
+        }
 
-                // Format specifications
-                const specsText = this.formatSpecs(specs);
+        // Format specifications
+        const specsText = this.formatSpecs(specs);
 
-                // Delete old specs and insert new ones
-                await editor.edit(editBuilder => {
-                    // Delete existing specs if they exist
-                    if (existingSpecsRange) {
-                        editBuilder.delete(existingSpecsRange);
-                    }
-                    // Insert new specifications
-                    editBuilder.insert(insertPosition, specsText);
-                });
+        // Delete old specs and insert new ones
+        await editor.edit(editBuilder => {
+            // Delete existing specs if they exist
+            if (existingSpecsRange) {
+                editBuilder.delete(existingSpecsRange);
             }
-        );
+            // Insert new specifications
+            editBuilder.insert(insertPosition, specsText);
+        });
     }
 
     /**

@@ -1,0 +1,22 @@
+{
+  "schema_version": "1.0.0",
+  "created_at": "2025-10-29T21:00:00Z",
+  "last_updated": "2025-10-30T03:45:37.719165Z",
+  "entries": {
+    "bfbf219971ec5ca390d40c49010551fded3af4bfcb68c351e7f8cddbfb814ac4": {
+      "function_name": "count_to",
+      "verified": true,
+      "created_at": "2025-10-30T03:45:37.710352Z",
+      "last_accessed": "2025-10-30T03:45:37.719162Z",
+      "access_count": 1,
+      "artifact_file": "artifacts/bfbf219971ec5ca390d40c49010551fded3af4bfcb68c351e7f8cddbfb814ac4.json"
+    }
+  },
+  "stats": {
+    "total_entries": 1,
+    "cache_hits": 2,
+    "cache_misses": 1,
+    "cache_size_bytes": 650,
+    "last_cleanup": "2025-10-29T21:00:00Z"
+  }
+}

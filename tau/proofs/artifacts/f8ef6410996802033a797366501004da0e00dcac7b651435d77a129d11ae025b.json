@@ -1,0 +1,18 @@
+{
+  "hash": "f8ef6410996802033a797366501004da0e00dcac7b651435d77a129d11ae025b",
+  "source_hash": "198b36c0fa13a0b807a3a1ba0b2b470d76dbeda47af07770dec4a34c06e608bb",
+  "body_hash": "53f5444073010c3677b0e2e71328da4cd8af213c68141168b5afc248352b3f7f",
+  "function_name": "buggy_count",
+  "verified": false,
+  "timestamp": "2025-10-30T23:56:20.569644Z",
+  "reason": "Bug detected: The loop runs n+1 times instead of n times, and starts with c=2, causing incorrect counting",
+  "source_code": "def buggy_count(n: int) -> int:\n    \"\"\"BUGGY: Returns n+1 instead of n\"\"\"\n    c = 2\n    i = 0\n    while i <= n:  # BUG: should be i < n\n        c = c + 1\n        i = i + 1\n    return c",
+  "specs": {
+    "requires": "n >= 0",
+    "ensures": "result = n + 3 /\\ result > 2",
+    "invariants": null,
+    "variant": null
+  },
+  "whyml_file": "whyml/f8ef6410996802033a797366501004da0e00dcac7b651435d77a129d11ae025b.mlw",
+  "lean_file": "lean/f8ef6410996802033a797366501004da0e00dcac7b651435d77a129d11ae025b.lean"
+}

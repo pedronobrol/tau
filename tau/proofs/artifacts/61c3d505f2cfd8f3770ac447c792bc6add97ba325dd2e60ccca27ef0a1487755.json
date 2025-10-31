@@ -1,0 +1,19 @@
+{
+  "hash": "61c3d505f2cfd8f3770ac447c792bc6add97ba325dd2e60ccca27ef0a1487755",
+  "source_hash": "915f199606a27b57c4a9fa267139dea46db4912afe9b8f023479243a4d78d554",
+  "body_hash": "fdd4c4c2d0af2c8f0e278b13f297e77c5a50e010e45136ac798b97fce67aa9a6",
+  "function_name": "multiply",
+  "verified": true,
+  "timestamp": "2025-10-31T18:00:33.628270Z",
+  "reason": "Proof succeeded (LLM generated invariants in 1 rounds)",
+  "duration": null,
+  "source_code": "def multiply(x: int, n: int) -> int:\n    \"\"\"Multiply x by n using repeated addition\"\"\"\n    result = 0\n    i = 0\n    while i < n:\n        result = result + x\n        i = i + 1\n    return result",
+  "specs": {
+    "requires": "n >= 0",
+    "ensures": "result = x * n",
+    "invariants": null,
+    "variant": null
+  },
+  "whyml_file": "whyml/61c3d505f2cfd8f3770ac447c792bc6add97ba325dd2e60ccca27ef0a1487755.mlw",
+  "lean_file": "lean/61c3d505f2cfd8f3770ac447c792bc6add97ba325dd2e60ccca27ef0a1487755.lean"
+}

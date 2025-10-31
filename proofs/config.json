@@ -1,0 +1,11 @@
+{
+  "version": "1.0.0",
+  "enabled": true,
+  "max_size_mb": 100,
+  "max_age_days": 365,
+  "auto_cleanup": true,
+  "cleanup_threshold_mb": 80,
+  "hash_algorithm": "sha256",
+  "hash_method": "ast_based",
+  "track_statistics": true
+}

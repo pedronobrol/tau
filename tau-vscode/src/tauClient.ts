@@ -31,6 +31,21 @@ export interface VerificationProgress {
     llm_max_rounds?: number;
 }
 
+export interface CachedProofInfo {
+    hash: string;
+    body_hash: string;
+    function_name: string;
+    verified: boolean;
+    specs: {
+        requires: string;
+        ensures: string;
+        invariants: string[];
+        variant: string;
+    };
+    timestamp: string;
+    reason?: string;
+}
+
 export class TauClient {
     private baseUrl: string;
 
@@ -213,6 +228,135 @@ export class TauClient {
             return await response.json() as any;
         } catch (error) {
             console.error('Error validating specs:', error);
+            return null;
+        }
+    }
+
+    /**
+     * Check if a proof certificate exists for a function
+     */
+    async checkProof(
+        functionName: string,
+        functionSource: string,
+        requires: string = '',
+        ensures: string = '',
+        invariants: string[] = [],
+        variant: string = ''
+    ): Promise<{ found: boolean, hash?: string, verified?: boolean, created_at?: string, reason?: string, duration?: number, specs?: { requires: string, ensures: string, invariants: string[], variant: string } } | null> {
+        try {
+            const response = await fetch(`${this.baseUrl}/api/proofs/check`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    function_name: functionName,
+                    function_source: functionSource,
+                    requires: requires,
+                    ensures: ensures,
+                    invariants: invariants,
+                    variant: variant
+                })
+            });
+
+            return await response.json() as any;
+        } catch (error) {
+            console.error('Error checking proof:', error);
+            return null;
+        }
+    }
+
+    /**
+     * Get all cached proofs for the same function body (ignoring specs).
+     * Used to detect when specs change but implementation stays the same.
+     */
+    async getProofsByBody(
+        functionName: string,
+        functionSource: string
+    ): Promise<{ found: boolean, count: number, proofs: CachedProofInfo[] } | null> {
+        try {
+            const response = await fetch(`${this.baseUrl}/api/proofs/by-body`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    function_name: functionName,
+                    function_source: functionSource
+                    // Note: NOT including specs - we want to find by body only
+                })
+            });
+
+            if (!response.ok) {
+                return null;
+            }
+
+            return await response.json() as any;
+        } catch (error) {
+            console.error('Error getting proofs by body:', error);
+            return null;
+        }
+    }
+
+    /**
+     * Alias for getProofsByBody for backward compatibility
+     */
+    async findProofsByBody(
+        functionName: string,
+        functionSource: string
+    ): Promise<{ found: boolean, count: number, proofs: CachedProofInfo[] } | null> {
+        return this.getProofsByBody(functionName, functionSource);
+    }
+
+    /**
+     * Store a proof certificate after verification
+     */
+    async storeProof(
+        functionName: string,
+        functionSource: string,
+        verified: boolean,
+        requires: string = '',
+        ensures: string = '',
+        invariants: string[] = [],
+        variant: string = '',
+        whymlCode?: string,
+        leanCode?: string,
+        why3Output?: string,
+        reason?: string,
+        duration?: number
+    ): Promise<{ success: boolean, hash: string, error?: string } | null> {
+        try {
+            const response = await fetch(`${this.baseUrl}/api/proofs/store`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    function_name: functionName,
+                    function_source: functionSource,
+                    verified: verified,
+                    requires: requires,
+                    ensures: ensures,
+                    invariants: invariants,
+                    variant: variant,
+                    whyml_code: whymlCode,
+                    lean_code: leanCode,
+                    why3_output: why3Output,
+                    reason: reason,
+                    duration: duration
+                })
+            });
+
+            return await response.json() as any;
+        } catch (error) {
+            console.error('Error storing proof:', error);
+            return null;
+        }
+    }
+
+    /**
+     * Get proof cache statistics
+     */
+    async getProofStats(): Promise<{ total_entries: number, cache_hits: number, cache_misses: number, cache_size_bytes: number, last_cleanup: string } | null> {
+        try {
+            const response = await fetch(`${this.baseUrl}/api/proofs/stats`);
+            return await response.json() as any;
+        } catch (error) {
+            console.error('Error getting proof stats:', error);
             return null;
         }
     }

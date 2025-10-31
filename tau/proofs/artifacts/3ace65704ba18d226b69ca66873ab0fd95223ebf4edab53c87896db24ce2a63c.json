@@ -1,0 +1,19 @@
+{
+  "hash": "3ace65704ba18d226b69ca66873ab0fd95223ebf4edab53c87896db24ce2a63c",
+  "source_hash": "642898efb9373bab8cc0e7a243b9641edc9b57b4ed5a7a9b1c60f5f323d1f2c1",
+  "body_hash": "c291941e9b6a2ccfead259ce16000112ecdbfdb0d1184076e1821467f7eabc36",
+  "function_name": "count_to",
+  "verified": true,
+  "timestamp": "2025-10-31T18:02:23.604883Z",
+  "reason": "Proof succeeded (LLM generated invariants in 1 rounds)",
+  "duration": null,
+  "source_code": "def count_to(n: int) -> int:\n    \"\"\"Count from 0 to n\"\"\"\n    c = 0\n    i = 0\n    while i < n:\n        c = c + 1\n        i = i + 1\n    return c",
+  "specs": {
+    "requires": "n >= 0",
+    "ensures": "result = n /\\ result >= 0",
+    "invariants": null,
+    "variant": null
+  },
+  "whyml_file": "whyml/3ace65704ba18d226b69ca66873ab0fd95223ebf4edab53c87896db24ce2a63c.mlw",
+  "lean_file": "lean/3ace65704ba18d226b69ca66873ab0fd95223ebf4edab53c87896db24ce2a63c.lean"
+}

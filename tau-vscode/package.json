@@ -70,6 +70,16 @@
           "type": "boolean",
           "default": true,
           "description": "Show animated spinner during spec generation and verification"
+        },
+        "tau.statusDisplayMode": {
+          "type": "string",
+          "enum": ["codelens", "inline"],
+          "default": "codelens",
+          "description": "How to display verification status",
+          "enumDescriptions": [
+            "Show status in CodeLens buttons above @safe (monochrome)",
+            "Show colored status at end of @safe line (green/red text)"
+          ]
         }
       }
     },

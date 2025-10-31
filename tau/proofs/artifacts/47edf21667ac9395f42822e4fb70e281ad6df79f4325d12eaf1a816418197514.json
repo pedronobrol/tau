@@ -1,0 +1,18 @@
+{
+  "hash": "47edf21667ac9395f42822e4fb70e281ad6df79f4325d12eaf1a816418197514",
+  "source_hash": "ce7082fae908a176ba6416f560ec02541baa76846845a41ee720fa4d920c1a89",
+  "body_hash": "146cde4a62e09f2c79c438a5ff0e0614c101174de568db4c6f286d94d7f6118b",
+  "function_name": "clamp",
+  "verified": true,
+  "timestamp": "2025-10-31T00:34:04.873226Z",
+  "reason": "Proof succeeded (LLM generated invariants in 1 rounds)",
+  "source_code": "def clamp(x: int, lo: int, hi: int) -> int:\n    \"\"\"Clamp x to [lo, hi]\"\"\"\n    t = x\n    if t < lo:\n        return lo\n    else:\n        if t > hi:\n            return hi\n        else:\n            return t",
+  "specs": {
+    "requires": "lo <= x",
+    "ensures": "(x < lo -> result = lo) /\\ (x > hi -> result = hi) /\\ (lo <= x /\\ x <= hi -> result = x)",
+    "invariants": null,
+    "variant": null
+  },
+  "whyml_file": "whyml/47edf21667ac9395f42822e4fb70e281ad6df79f4325d12eaf1a816418197514.mlw",
+  "lean_file": "lean/47edf21667ac9395f42822e4fb70e281ad6df79f4325d12eaf1a816418197514.lean"
+}

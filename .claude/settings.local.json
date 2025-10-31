@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python3:*)",
+      "Bash(cat:*)",
+      "Bash(why3 prove:*)",
+      "Bash(mkdir:*)",
+      "Bash(npm run compile:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

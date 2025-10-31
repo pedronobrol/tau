@@ -90,6 +90,16 @@ def translate_statements(statements: List[ast.stmt],
         elif isinstance(stmt, ast.Return):
             lines.append(expr_translator.visit(stmt.value))
 
+        elif isinstance(stmt, ast.Expr):
+            # Skip standalone expressions (like docstrings)
+            # Docstrings are Expr nodes containing Constant string values
+            if isinstance(stmt.value, ast.Constant) and isinstance(stmt.value.value, str):
+                # This is a docstring, skip it
+                pass
+            else:
+                # Other expression statements are not supported
+                raise NotImplementedError(f"Unsupported expression statement: {ast.dump(stmt)}")
+
         else:
             raise NotImplementedError(f"Unsupported statement: {type(stmt).__name__}")
 

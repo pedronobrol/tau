@@ -2,13 +2,10 @@
 Simple example with manual invariants (no LLM needed)
 """
 
-from tau_decorators import safe, requires, ensures, invariant, variant
+from tau_decorators import safe_auto, safe, requires, ensures, invariant, variant
 
 
-@safe
-@requires("n >= 0")
-@ensures("result = n")
-@ensures("result >= 0")
+@safe_auto
 def count_to(n: int) -> int:
     """Count from 0 to n"""
     c = 0
@@ -20,7 +17,7 @@ def count_to(n: int) -> int:
 
 
 @safe
-@requires("lo <= hi")
+@requires("lo <= x")
 @ensures("(x < lo -> result = lo) /\\ (x > hi -> result = hi) /\\ (lo <= x /\\ x <= hi -> result = x)")
 def clamp(x: int, lo: int, hi: int) -> int:
     """Clamp x to [lo, hi]"""

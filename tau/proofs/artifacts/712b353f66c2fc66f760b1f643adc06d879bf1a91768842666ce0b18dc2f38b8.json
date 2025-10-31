@@ -1,0 +1,18 @@
+{
+  "hash": "712b353f66c2fc66f760b1f643adc06d879bf1a91768842666ce0b18dc2f38b8",
+  "source_hash": "89f17f6fa8b66b9e3e6fb006de795b31db754940335eae8318cffb78c16787e2",
+  "body_hash": "407e36cbe06cc9750dd119b4aa60c64d3c0cd5ae8d4b9afb315a88b2a1201aae",
+  "function_name": "buggy_count",
+  "verified": true,
+  "timestamp": "2025-10-30T23:55:13.099191Z",
+  "reason": "Proof succeeded (LLM generated invariants in 1 rounds)",
+  "source_code": "def buggy_count(n: int) -> int:\n    \"\"\"BUGGY: Returns n+1 instead of n\"\"\"\n    c = 0\n    i = 0\n    while i <= n:  # BUG: should be i < n\n        c = c + 1\n        i = i + 1\n    return c",
+  "specs": {
+    "requires": "n >= 0",
+    "ensures": "result = n + 1",
+    "invariants": null,
+    "variant": null
+  },
+  "whyml_file": "whyml/712b353f66c2fc66f760b1f643adc06d879bf1a91768842666ce0b18dc2f38b8.mlw",
+  "lean_file": "lean/712b353f66c2fc66f760b1f643adc06d879bf1a91768842666ce0b18dc2f38b8.lean"
+}

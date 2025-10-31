@@ -33,6 +33,7 @@ def safe(func: Callable) -> Callable:
     Mark function for formal verification.
 
     This decorator must be the outermost decorator.
+    Requires explicit @requires and @ensures specifications.
     """
     @wraps(func)
     def wrapper(*args, **kwargs):
@@ -40,6 +41,51 @@ def safe(func: Callable) -> Callable:
 
     # Mark the function as needing verification
     wrapper.__safe__ = True
+    wrapper.__safe_auto__ = False
+    wrapper.__safe_specs__ = {
+        "requires": [],
+        "ensures": [],
+        "invariants": [],
+        "variant": None
+    }
+
+    return wrapper
+
+
+def safe_auto(func: Callable) -> Callable:
+    """
+    Mark function for automatic formal verification with inferred specs.
+
+    Automatically generates ALL specifications:
+    - @requires (preconditions)
+    - @ensures (postconditions)
+    - @invariant (loop invariants)
+    - @variant (termination proof)
+
+    This decorator must be the outermost decorator.
+
+    Example:
+        @safe_auto
+        def multiply(x: int, n: int) -> int:
+            result = 0
+            i = 0
+            while i < n:
+                result = result + x
+                i = i + 1
+            return result
+
+        # System automatically infers:
+        # @requires("n >= 0")
+        # @ensures("result = n * x")
+        # Plus loop invariants and variant
+    """
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        return func(*args, **kwargs)
+
+    # Mark the function as needing verification with auto-generation
+    wrapper.__safe__ = True
+    wrapper.__safe_auto__ = True  # Enable automatic spec generation
     wrapper.__safe_specs__ = {
         "requires": [],
         "ensures": [],

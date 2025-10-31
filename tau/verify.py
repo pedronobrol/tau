@@ -10,6 +10,7 @@ from tau.parser import SafeFunctionParser
 from tau.llm import feedback_loop_transpile
 from tau import transpile
 from tau.output import VerificationJSONFormatter
+from tau.proofs import compute_function_hash
 
 
 class VerificationResult:
@@ -30,6 +31,7 @@ class VerificationResult:
         self.bug_analysis = None
         self.whyml_file = None
         self.lean_file = None
+        self.hash = None  # Function semantic hash
 
     def __repr__(self):
         status = "✅ PASS" if self.verified else "❌ FAIL"
@@ -105,6 +107,84 @@ def verify_function(func_info: Dict[str, Any], api_key: str = None, verbose: boo
     start_time = time.time()
 
     try:
+        # Check if auto_mode is enabled (@safe_auto decorator)
+        auto_mode = func_info.get("auto_mode", False)
+
+        # If auto_mode, generate requires/ensures specs first
+        if auto_mode:
+            if verbose:
+                print(f"\n🤖 Auto-generating specifications for {func_info['name']}...")
+
+            # Import spec generator and models
+            from tau.llm.spec_generator import generate_specifications_sync
+            from tau.server.models import FunctionInfo
+            import ast
+
+            # Parse function to extract details for FunctionInfo
+            try:
+                tree = ast.parse(func_info["source"])
+                func_node = tree.body[0]
+
+                # Extract parameters
+                params = [(arg.arg, None) for arg in func_node.args.args]
+
+                # Extract return type if annotated
+                return_type = None
+                if func_node.returns and isinstance(func_node.returns, ast.Name):
+                    return_type = func_node.returns.id
+
+                # Check if has loop
+                has_loop = any(isinstance(n, ast.While) for n in ast.walk(func_node))
+
+                # Build signature
+                param_str = ", ".join(f"{name}" for name, _ in params)
+                sig = f"def {func_info['name']}({param_str})"
+                if return_type:
+                    sig += f" -> {return_type}"
+
+                # Create FunctionInfo object
+                function_info_obj = FunctionInfo(
+                    name=func_info["name"],
+                    source=func_info["source"],
+                    line_number=func_info.get("lineno", 1),
+                    signature=sig,
+                    has_loop=has_loop,
+                    parameters=params,
+                    return_type=return_type
+                )
+
+                # Generate specs from function info
+                spec_result = generate_specifications_sync(
+                    function_info=function_info_obj,
+                    api_key=api_key
+                )
+            except Exception as e:
+                if verbose:
+                    print(f"   Error parsing function: {e}")
+                result.verified = False
+                result.reason = f"Auto-generation failed: Could not parse function - {e}"
+                result.duration = time.time() - start_time
+                return result
+
+            if spec_result and spec_result.requires and spec_result.ensures:
+                # Use generated specs (join list of clauses with /\)
+                func_info["requires"] = " /\\ ".join(spec_result.requires)
+                func_info["ensures"] = " /\\ ".join(spec_result.ensures)
+
+                if verbose:
+                    print(f"   Generated @requires: {func_info['requires']}")
+                    print(f"   Generated @ensures: {func_info['ensures']}")
+                    if spec_result.confidence:
+                        print(f"   Confidence: {spec_result.confidence}")
+                    if spec_result.reasoning:
+                        print(f"   Reasoning: {spec_result.reasoning}")
+            else:
+                # Spec generation failed
+                result.verified = False
+                result.reason = "Auto-generation failed: Could not generate specifications"
+                result.duration = time.time() - start_time
+                return result
+
         # Prepare metadata
         meta = {
             func_info["name"]: {
@@ -212,6 +292,23 @@ def verify_function(func_info: Dict[str, Any], api_key: str = None, verbose: boo
         result.reason = f"Error: {str(e)}"
 
     result.duration = time.time() - start_time
+
+    # Compute semantic hash of function + specs
+    try:
+        hash_info = {
+            "name": func_info["name"],
+            "source": func_info["source"],
+            "requires": result.specification.get("requires", ""),
+            "ensures": result.specification.get("ensures", ""),
+            "invariants": result.specification.get("invariants", []),
+            "variant": result.specification.get("variant", "")
+        }
+        result.hash = compute_function_hash(hash_info)
+    except Exception as e:
+        if verbose:
+            print(f"⚠️  Could not compute hash: {e}")
+        result.hash = None
+
     return result
 
 

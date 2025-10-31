@@ -1,0 +1,16 @@
+{
+  "hash": "611c95e21aba44c2f1e4474ecea76e525e926b671850646a26a387c8bb955b1f",
+  "source_hash": "f92bcef63131c6b0c17c6958128c1164a5397995afd169ed3d2a2f497faa01a7",
+  "body_hash": "407e36cbe06cc9750dd119b4aa60c64d3c0cd5ae8d4b9afb315a88b2a1201aae",
+  "function_name": "buggy_count",
+  "verified": false,
+  "timestamp": "2025-10-30T23:49:46.229452Z",
+  "reason": "Error: 'GeneratedSpecs' object has no attribute 'get'",
+  "source_code": "def buggy_count(n: int) -> int:\n    \"\"\"BUGGY: Returns n+1 instead of n\"\"\"\n    c = 0\n    i = 0\n    while i <= n:  # BUG: should be i < n\n        c = c + 1\n        i = i + 1\n    return c",
+  "specs": {
+    "requires": "",
+    "ensures": "",
+    "invariants": [],
+    "variant": ""
+  }
+}

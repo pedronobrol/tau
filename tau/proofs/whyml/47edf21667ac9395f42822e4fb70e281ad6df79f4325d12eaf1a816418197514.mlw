@@ -1,0 +1,21 @@
+module M_clamp
+use int.Int
+use bool.Bool
+use ref.Ref
+use int.ComputerDivision
+
+let clamp (x:int) (lo:int) (hi:int) : int =
+  requires { lo <= x }
+  ensures  { (x < lo -> result = lo) /\ (x > hi -> result = hi) /\ (lo <= x /\ x <= hi -> result = x) }
+  let t = ref x in
+  if (!t < lo) then (
+    lo
+  ) else (
+    if (!t > hi) then (
+      hi
+    ) else (
+      !t
+    )
+  )
+
+end

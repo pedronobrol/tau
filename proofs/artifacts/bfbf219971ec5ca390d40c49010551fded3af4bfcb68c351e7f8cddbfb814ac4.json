@@ -1,0 +1,19 @@
+{
+  "hash": "bfbf219971ec5ca390d40c49010551fded3af4bfcb68c351e7f8cddbfb814ac4",
+  "function_name": "count_to",
+  "verified": true,
+  "timestamp": "2025-10-30T03:45:37.710352Z",
+  "reason": null,
+  "specs": {
+    "requires": "n >= 0",
+    "ensures": "result = n",
+    "invariants": [
+      "0 <= !i <= n",
+      "!c = !i"
+    ],
+    "variant": "n - !i"
+  },
+  "whyml_file": "whyml/bfbf219971ec5ca390d40c49010551fded3af4bfcb68c351e7f8cddbfb814ac4.mlw",
+  "lean_file": "lean/bfbf219971ec5ca390d40c49010551fded3af4bfcb68c351e7f8cddbfb814ac4.lean",
+  "log_file": "logs/bfbf219971ec5ca390d40c49010551fded3af4bfcb68c351e7f8cddbfb814ac4.log"
+}

@@ -44,11 +44,12 @@ export class DecorationProvider {
         const lineText = editor.document.lineAt(line);
         const endPosition = lineText.range.end;
 
+        const hashDisplay = hash && hash.length > 0 ? hash.substring(0, 8) : 'unknown';
         const decoration: vscode.DecorationOptions = {
             range: new vscode.Range(endPosition, endPosition),
             renderOptions: {
                 after: {
-                    contentText: ` ✔ #${hash.substring(0, 8)}`
+                    contentText: `  ✔  Proof passed  #${hashDisplay}`
                 }
             }
         };
@@ -57,19 +58,20 @@ export class DecorationProvider {
     }
 
     /**
-     * Show failure decoration
+     * Show failure decoration with hash
      */
-    public showFailure(editor: vscode.TextEditor, line: number): void {
+    public showFailure(editor: vscode.TextEditor, line: number, hash?: string): void {
         this.clearLine(editor, line);
 
         const lineText = editor.document.lineAt(line);
         const endPosition = lineText.range.end;
 
+        const hashDisplay = hash && hash.length > 0 ? `  #${hash.substring(0, 8)}` : '';
         const decoration: vscode.DecorationOptions = {
             range: new vscode.Range(endPosition, endPosition),
             renderOptions: {
                 after: {
-                    contentText: ' ✗'
+                    contentText: `  ✗  Proof failed${hashDisplay}`
                 }
             }
         };

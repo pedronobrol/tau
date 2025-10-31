@@ -46,22 +46,28 @@ class SafeFunctionParser:
 
     def _extract_safe_function(self, node: ast.FunctionDef, source: str) -> Optional[Dict[str, Any]]:
         """
-        Extract function info if it has @safe decorator.
+        Extract function info if it has @safe or @safe_auto decorator.
 
         Returns:
-            Dict with function info or None if not @safe decorated
+            Dict with function info or None if not decorated
         """
-        # Check if function has @safe decorator
+        # Check if function has @safe or @safe_auto decorator
         has_safe = False
+        auto_mode = False
         requires_list = []
         ensures_list = []
         invariants_list = []
         variant_value = None
 
         for decorator in node.decorator_list:
-            # Handle simple decorator: @safe
-            if isinstance(decorator, ast.Name) and decorator.id == "safe":
-                has_safe = True
+            # Handle simple decorators: @safe or @safe_auto
+            if isinstance(decorator, ast.Name):
+                if decorator.id == "safe":
+                    has_safe = True
+                    auto_mode = False
+                elif decorator.id == "safe_auto":
+                    has_safe = True
+                    auto_mode = True
 
             # Handle decorator with arguments: @requires("...")
             elif isinstance(decorator, ast.Call):
@@ -102,20 +108,8 @@ class SafeFunctionParser:
         # Join from the def line onward
         func_source = '\n'.join(lines[func_start_idx:])
 
-        # Remove docstring if present (transpiler doesn't support them)
-        try:
-            func_tree = ast.parse(func_source)
-            if func_tree.body and isinstance(func_tree.body[0], ast.FunctionDef):
-                func_node = func_tree.body[0]
-                # Remove docstring (first Expr node with string)
-                if (func_node.body and
-                    isinstance(func_node.body[0], ast.Expr) and
-                    isinstance(func_node.body[0].value, ast.Constant) and
-                    isinstance(func_node.body[0].value.value, str)):
-                    func_node.body = func_node.body[1:]  # Skip docstring
-                    func_source = ast.unparse(func_node)
-        except:
-            pass  # If can't parse/remove docstring, use original
+        # Keep the source AS-IS (with docstrings) for hash computation
+        # The transpiler will need to handle docstrings or we handle them separately
 
         # Combine multiple requires/ensures with /\
         requires = " /\\ ".join(requires_list) if requires_list else "true"
@@ -128,7 +122,8 @@ class SafeFunctionParser:
             "ensures": ensures,
             "invariants": invariants_list if invariants_list else None,
             "variant": variant_value,
-            "lineno": node.lineno
+            "lineno": node.lineno,
+            "auto_mode": auto_mode  # True if @safe_auto, False if @safe
         }
 
     def parse_module(self, module) -> List[Dict[str, Any]]:

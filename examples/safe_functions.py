@@ -4,7 +4,7 @@ Example file demonstrating @safe decorated functions.
 This file contains both correct and buggy functions to test the verification system.
 """
 
-from tau_decorators import safe, requires, ensures, invariant, variant
+from tau_decorators import safe_auto, safe, requires, ensures, invariant, variant
 
 
 # Example 1: Simple function with manual invariants
@@ -24,6 +24,17 @@ def count_to(n: int) -> int:
     return c
 
 
+@safe_auto
+def multiply(x: int, n: int) -> int:
+    """Multiply x by n using repeated addition"""
+    result = 0
+    i = 0
+    while i < n:
+        result = result + x
+        i = i + 1
+    return result
+
+
 # Example 2: Function without invariants (will use LLM)
 @safe
 @requires("n >= 0")
@@ -39,9 +50,7 @@ def multiply(x: int, n: int) -> int:
 
 
 # Example 3: Buggy function (off-by-one error)
-@safe
-@requires("n >= 0")
-@ensures("result = n")
+@safe_auto
 def buggy_count(n: int) -> int:
     """BUGGY: Returns n+1 instead of n"""
     c = 0

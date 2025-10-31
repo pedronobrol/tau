@@ -1,0 +1,22 @@
+module M_buggy_count
+use int.Int
+use bool.Bool
+use ref.Ref
+use int.ComputerDivision
+
+let buggy_count (n:int) : int =
+  requires { n >= 0 }
+  ensures  { result = n + 1 }
+  let c = ref 0 in
+  let i = ref 0 in
+  while (!i <= n) do
+    invariant { 0 <= !i }
+    invariant { !i <= n + 1 }
+    invariant { !c = !i }
+    variant { n + 1 - !i }
+    c := (!c + 1);
+    i := (!i + 1);
+  done;
+  !c
+
+end
